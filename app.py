@@ -1,4 +1,5 @@
 import streamlit as st
+from modules.pdf_utils import extract_text_from_pdf
 
 # Streamlit page setup
 st.set_page_config(
@@ -38,11 +39,23 @@ elif page == "📄 PDF/Text Upload":
     uploaded_file = st.file_uploader("Upload a PDF", type=["pdf"])
     input_text = st.text_area("Or paste your text here:")
 
-    if uploaded_file:
-        st.success("✅ PDF uploaded successfully! (Extraction coming soon)")
-    if input_text.strip():
-        st.success("✅ Text received! (Processing coming soon)")
+    extracted_text = ""
 
+    if uploaded_file:
+        # Save temporary file
+        temp_path = os.path.join("data", uploaded_file.name)
+        with open(temp_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+        extracted_text = extract_text_from_pdf(temp_path)
+        st.success("✅ PDF uploaded & text extracted successfully!")
+    
+    if input_text.strip():
+        extracted_text = input_text
+        st.success("✅ Text received!")
+
+    if extracted_text:
+        st.subheader("📄 Extracted Text Preview")
+        st.text_area("Preview:", extracted_text, height=200)
 # --- Summarizer Page ---
 elif page == "📝 Summarizer":
     st.header("📝 AI Summarizer")
