@@ -78,24 +78,24 @@ elif page == "📝 Summarizer":
         st.subheader("Quick Bullets (Revision)")
         for i, bullet in enumerate(summaries["quick_bullets"], 1):
             st.write(f"{i}. {bullet}")
-
         st.markdown("---")  # separator
 
         # --- Study Notes (Abstractive) ---
         st.subheader("Study Notes")
         for note in summaries["study_notes"]:
-            # The heading is already included in the note from summarizer.py
             st.markdown(note)
             st.markdown("")  # small space between notes
-
         st.markdown("---")  # separator
 
-        # --- Exam Guide (Key Concepts) ---
-        st.subheader("Exam Guide (Key Concepts)")
-        # Display as a clean bullet list instead of comma-separated
-        for concept in summaries["exam_guide"]:
-            st.write(f"- {concept}")
-
+        # --- Exam Guide (Mini-Glossary) ---
+        st.subheader("Exam Guide (Mini-Glossary)")
+        if summaries["exam_guide"]:
+            with st.expander("Click to view glossary"):
+                for idx, concept in enumerate(summaries["exam_guide"], 1):
+                    # Each line is already in 'Keyword: Definition' format
+                    st.write(f"{idx}. {concept}")
+        else:
+            st.info("No key concepts found. Make sure text is uploaded.")
     else:
         st.warning("⚠️ Please upload a PDF or paste text in the 'PDF/Text Upload' section first.")
 
