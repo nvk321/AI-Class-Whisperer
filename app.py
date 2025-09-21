@@ -1,66 +1,47 @@
 import os
 import streamlit as st
 from modules.pdf_utils import extract_text_from_pdf
-from modules.summarizer import summarize_text
+from modules.summarizer import summarize_text, summarize_section
+import pyperclip
 
-# Streamlit page setup
-st.set_page_config(
-    page_title="AI Class Whisperer",
-    page_icon="🎓",
-    layout="wide"
-)
+st.set_page_config(page_title="AI Class Whisperer", page_icon="🎓", layout="wide")
 
-# --- Initialize session state for extracted text ---
+# Session state
 if "extracted_text" not in st.session_state:
     st.session_state["extracted_text"] = ""
+if "summaries" not in st.session_state:
+    st.session_state["summaries"] = None
 
-# --- Sidebar ---
+# Sidebar
 st.sidebar.title("📂 Navigation")
-page = st.sidebar.radio(
-    "Choose a feature:",
-    ["🏠 Home", "📄 PDF/Text Upload", "📝 Summarizer", "🧠 Flashcards", "📊 Analytics (coming soon)"]
-)
-
+page = st.sidebar.radio("Choose a feature:", ["🏠 Home", "📄 PDF/Text Upload", "📝 Summarizer", "🧠 Flashcards"])
 st.sidebar.markdown("---")
 st.sidebar.info("AI Class Whisperer – GenAI-powered learning assistant for students.")
 
-# --- Home Page ---
+# Home
 if page == "🏠 Home":
     st.title("🎓 AI Class Whisperer")
     st.subheader("Your AI-powered study companion")
     st.markdown("""
-    Welcome to **AI Class Whisperer** – an intelligent assistant that helps you:
     - 📄 Upload & process course PDFs
-    - 📝 Get concise & detailed summaries
-    - 🧠 Generate flashcards and quizzes
-    - 💬 Interact with a tutor agent (coming soon)
-    - 📊 Track learning progress (coming soon)
-
-    🚀 Let's get started by uploading a PDF or pasting text!
+    - 📝 Generate concise & detailed summaries
+    - 🧠 Create flashcards and quizzes
     """)
 
-# --- PDF/Text Upload Page ---
+# PDF/Text Upload
 elif page == "📄 PDF/Text Upload":
     st.header("📄 Upload Course Material")
     uploaded_file = st.file_uploader("Upload a PDF", type=["pdf"])
     input_text = st.text_area("Or paste your text here:")
 
     if uploaded_file:
-        # Ensure data folder exists
-        data_dir = "data"
-        if not os.path.exists(data_dir):
-            os.makedirs(data_dir)
-
-        # Sanitize filename
+        os.makedirs("data", exist_ok=True)
         safe_filename = uploaded_file.name.replace(" ", "_")
-        temp_path = os.path.join(data_dir, safe_filename)
-
-        # Save uploaded PDF
+        temp_path = os.path.join("data", safe_filename)
         with open(temp_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
-
         st.session_state["extracted_text"] = extract_text_from_pdf(temp_path)
-        st.success("✅ PDF uploaded & text extracted successfully!")
+        st.success("✅ PDF uploaded & text extracted!")
 
     if input_text.strip():
         st.session_state["extracted_text"] = input_text
@@ -69,45 +50,51 @@ elif page == "📄 PDF/Text Upload":
     if st.session_state["extracted_text"]:
         st.subheader("📄 Extracted Text Preview")
         st.text_area("Preview:", st.session_state["extracted_text"], height=200)
-# --- Summarizer Page ---
-elif page == "📝 Summarizer":
-    if st.session_state["extracted_text"]:
-        summaries = summarize_text(st.session_state["extracted_text"])
 
-        # --- Quick Bullets ---
+# Summarizer
+elif page == "📝 Summarizer":
+    st.header("📝 Summarizer")
+    if st.session_state["extracted_text"]:
+        if not st.session_state["summaries"]:
+            with st.spinner("Generating summaries..."):
+                st.session_state["summaries"] = summarize_text(st.session_state["extracted_text"])
+        summaries = st.session_state["summaries"]
+
+        # Quick Bullets
         st.subheader("Quick Bullets (Revision)")
         for i, bullet in enumerate(summaries["quick_bullets"], 1):
-            st.write(f"{i}. {bullet}")
-        st.markdown("---")  # separator
+            st.markdown(f"{i}. {bullet}")
+        st.markdown("---")
 
-        # --- Study Notes (Abstractive) ---
-        st.subheader("Study Notes")
-        for note in summaries["study_notes"]:
-            st.markdown(note)
-            st.markdown("")  # small space between notes
-        st.markdown("---")  # separator
+        # Study Notes
+        st.subheader("Study Notes (Teacher-style)")
+        full_notes = ""
+        for title, content in summaries["section_summaries"]:
+            full_notes += summarize_section(title, content) + "\n\n"
+        st.markdown(full_notes)
 
-        # --- Exam Guide (Mini-Glossary) ---
+        # Single copy button
+        if st.button("Copy Full Study Notes"):
+            pyperclip.copy(full_notes)
+            st.success("✅ Study Notes copied to clipboard!")
+
+        st.markdown("---")
+
+        # Exam Guide
         st.subheader("Exam Guide (Mini-Glossary)")
         if summaries["exam_guide"]:
             with st.expander("Click to view glossary"):
                 for idx, concept in enumerate(summaries["exam_guide"], 1):
-                    # Each line is already in 'Keyword: Definition' format
                     st.write(f"{idx}. {concept}")
         else:
-            st.info("No key concepts found. Make sure text is uploaded.")
+            st.info("No key concepts found.")
     else:
-        st.warning("⚠️ Please upload a PDF or paste text in the 'PDF/Text Upload' section first.")
+        st.warning("⚠️ Upload a PDF or paste text first.")
 
-# --- Flashcards Page ---
+# Flashcards
 elif page == "🧠 Flashcards":
     st.header("🧠 Flashcards & Quizzes")
     if st.session_state["extracted_text"]:
-        st.info("Flashcards and quizzes will be generated here soon.")
+        st.info("Flashcards coming soon.")
     else:
-        st.warning("⚠️ Please upload a PDF or paste text in the 'PDF/Text Upload' section first.")
-
-# --- Analytics Page ---
-elif page == "📊 Analytics (coming soon)":
-    st.header("📊 Learning Analytics Dashboard")
-    st.warning("🚧 Feature under development.")
+        st.warning("⚠️ Upload a PDF or paste text first.")

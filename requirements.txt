@@ -1,19 +1,13 @@
-streamlit==1.37.1
-pypdf==4.3.1
-pytesseract==0.3.10
-pdf2image==1.17.0
-transformers==4.44.2
-torch==2.3.1
-nltk==3.9.1
-spacy==3.7.5
-langchain==0.2.11
-faiss-cpu==1.8.0.post1
-chromadb==0.5.4
-openai==1.40.1
-scikit-learn==1.5.1
-pandas==2.2.2
-numpy==1.26.4
-plotly==5.23.0
-matplotlib==3.9.2
-python-dotenv==1.0.1
-rapidfuzz
+streamlit>=1.24.0
+transformers>=4.35.0
+torch>=2.1.0
+spacy>=3.6.0
+pypdf>=3.14.0
+nltk>=3.9.0
+tqdm>=4.66.0
+sentencepiece>=0.1.99
+python-docx>=0.8.12       # For DOCX support if needed
+pytesseract>=0.3.12       # For OCR on scanned PDFs
+Pillow>=10.0.0            # Image support for OCR
+faiss-cpu>=1.7.4          # For vector search in future RAG module
+pyperclip
