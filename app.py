@@ -75,22 +75,26 @@ elif page == "📝 Summarizer":
         summaries = summarize_text(st.session_state["extracted_text"])
 
         # --- Quick Bullets ---
-        st.subheader("Quick Bullets")
+        st.subheader("Quick Bullets (Revision)")
         for i, bullet in enumerate(summaries["quick_bullets"], 1):
             st.write(f"{i}. {bullet}")
 
+        st.markdown("---")  # separator
+
         # --- Study Notes (Abstractive) ---
         st.subheader("Study Notes")
-        st.write(summaries["study_notes"])  # already merged as one text
+        for note in summaries["study_notes"]:
+            # The heading is already included in the note from summarizer.py
+            st.markdown(note)
+            st.markdown("")  # small space between notes
+
+        st.markdown("---")  # separator
 
         # --- Exam Guide (Key Concepts) ---
-        st.subheader("Exam Guide")
-        # Display key concepts in columns for better readability
-        concepts = summaries["exam_guide"]
-        num_cols = 4
-        cols = st.columns(num_cols)
-        for idx, concept in enumerate(concepts):
-            cols[idx % num_cols].write(f"- {concept}")
+        st.subheader("Exam Guide (Key Concepts)")
+        # Display as a clean bullet list instead of comma-separated
+        for concept in summaries["exam_guide"]:
+            st.write(f"- {concept}")
 
     else:
         st.warning("⚠️ Please upload a PDF or paste text in the 'PDF/Text Upload' section first.")

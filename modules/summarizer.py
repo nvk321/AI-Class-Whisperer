@@ -1,19 +1,21 @@
 import spacy
-from transformers import pipeline
 from collections import Counter
-import re
+from transformers import pipeline
 
 # Load spaCy English model
 nlp = spacy.load("en_core_web_sm")
 
-# Load HuggingFace summarization pipeline (explicit model)
-SUMMARIZATION_MODEL = "sshleifer/distilbart-cnn-12-6"
-summarizer = pipeline(
-    "summarization",
-    model=SUMMARIZATION_MODEL,
-    tokenizer=SUMMARIZATION_MODEL,
-    clean_up_tokenization_spaces=True
-)
+# Load HuggingFace summarization pipeline
+summarizer = pipeline("summarization")
+
+def clean_exam_tokens(tokens):
+    """Remove short/broken tokens and duplicates."""
+    cleaned = set()
+    for token in tokens:
+        t = token.strip()
+        if len(t) > 2 and t.isalpha():
+            cleaned.add(t)
+    return sorted(cleaned)
 
 def summarize_text(text):
     """
@@ -25,7 +27,7 @@ def summarize_text(text):
     doc = nlp(text)
     sentences = list(doc.sents)
 
-    # --- Quick Bullets (extractive) ---
+    # --- Quick Bullets (extractive, full sentences) ---
     sentence_scores = {}
     for sent in sentences:
         score = 0
@@ -34,37 +36,30 @@ def summarize_text(text):
                 score += 2
             else:
                 score += 1
-        sentence_scores[sent.text] = score
+        sentence_scores[sent.text.strip()] = score
 
     sorted_sentences = sorted(sentence_scores, key=sentence_scores.get, reverse=True)
-    quick_bullets = [s for s in sorted_sentences[:5]]
+    quick_bullets = sorted_sentences[:7]  # top 7 for better coverage
 
-    # --- Study Notes (abstractive) ---
-    # Chunk text to avoid model input limits
-    chunk_size = 1000
-    chunks = [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
+    # --- Study Notes (abstractive, student-friendly) ---
+    # Split text by paragraphs instead of arbitrary chunk size
+    paragraphs = [p.strip() for p in text.split("\n") if p.strip()]
     study_notes = []
-
-    for chunk in chunks:
-        try:
-            summary = summarizer(chunk, max_length=150, min_length=50, do_sample=False)[0]['summary_text']
-            study_notes.append(summary)
-        except Exception as e:
-            study_notes.append("Error summarizing this chunk.")
-
-    # Merge chunks into one coherent note
-    study_notes = " ".join(study_notes)
+    for idx, para in enumerate(paragraphs, 1):
+        # Skip too short paragraphs
+        if len(para.split()) < 20:
+            continue
+        summary = summarizer(para, max_length=180, min_length=60, do_sample=False)[0]['summary_text']
+        # Use first noun chunk as heading if exists
+        heading = list(nlp(para).noun_chunks)[0].text if list(nlp(para).noun_chunks) else f"Section {idx}"
+        study_notes.append(f"**{heading}:** {summary}")
 
     # --- Exam Guide (key concepts) ---
-    exam_guide = set()
-    for token in doc:
-        if token.ent_type_ or token.pos_ in ["PROPN", "NOUN"]:
-            clean_token = re.sub(r'[^A-Za-z0-9]+', '', token.text)
-            if clean_token:
-                exam_guide.add(clean_token)
+    exam_tokens = [token.text for token in doc if token.ent_type_ or token.pos_ in ["PROPN", "NOUN"]]
+    exam_guide = clean_exam_tokens(exam_tokens)
 
     return {
         "quick_bullets": quick_bullets,
         "study_notes": study_notes,
-        "exam_guide": sorted(list(exam_guide))
+        "exam_guide": exam_guide
     }
