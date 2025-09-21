@@ -10,4 +10,4 @@ python-docx>=0.8.12       # For DOCX support if needed
 pytesseract>=0.3.12       # For OCR on scanned PDFs
 Pillow>=10.0.0            # Image support for OCR
 faiss-cpu>=1.7.4          # For vector search in future RAG module
-pyperclip
+pyperclip>=1.8
